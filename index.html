@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>DENIGAZATION</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{width:100%;height:100%;overflow:hidden;touch-action:none;}
+  body{
+    background:#050508;display:flex;flex-direction:column;
+    align-items:center;justify-content:flex-start;
+    min-height:100vh;font-family:'Press Start 2P',monospace;
+  }
+  #titleBar{
+    width:min(900px,100vw);text-align:center;padding:3px 0 2px;
+    font-size:10px;letter-spacing:2px;
+    background:linear-gradient(90deg,#111,#222,#111);
+    color:#f39c12;text-shadow:0 0 12px #f39c12;
+    border-bottom:1px solid #333;flex-shrink:0;
+  }
+  #hud{
+    width:min(900px,100vw);display:flex;align-items:center;
+    justify-content:space-between;padding:3px 6px 2px;gap:8px;flex-shrink:0;
+  }
+  #hpWrap{display:flex;align-items:center;gap:4px;flex:1;min-width:0;}
+  #hpBar{
+    flex:1;height:14px;background:#1a1a2e;
+    border:2px solid #333;border-radius:7px;overflow:hidden;position:relative;
+  }
+  #hpFill{height:100%;width:100%;border-radius:7px;transition:width .15s,background .3s;}
+  #hpLabel{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-size:5px;color:#fff;text-shadow:0 1px 2px #000;pointer-events:none;white-space:nowrap;
+  }
+  #scoreBox{color:#f39c12;font-size:6px;white-space:nowrap;}
+  #distBox{color:#aaa;font-size:6px;white-space:nowrap;}
+  #skinBox{font-size:6px;white-space:nowrap;color:#fff;}
+  #progWrap{width:min(900px,100vw);position:relative;margin-bottom:2px;flex-shrink:0;}
+  #progBar{
+    width:100%;height:8px;background:#0d0d1a;border-radius:4px;
+    overflow:visible;border:1px solid #222;position:relative;
+  }
+  #progFill{
+    height:100%;width:0%;border-radius:4px;
+    background:linear-gradient(90deg,#111 0%,#3d2e1e 10%,#7a5c47 30%,#c49a7a 55%,#ecdcc8 80%,#fff 100%);
+    transition:width .12s;
+  }
+  .mdot{
+    position:absolute;top:-3px;width:2px;height:14px;
+    background:rgba(255,215,0,.55);z-index:2;border-radius:1px;
+  }
+  .mdot.done{background:rgba(120,255,140,.8);}
+
+  #gameArea{
+    position:relative;flex-shrink:0;
+    width:min(900px,100vw);
+  }
+  canvas{
+    display:block;width:100%;
+    border:2px solid #1a1a1a;border-radius:4px;
+    box-shadow:0 0 30px rgba(100,80,200,.08);
+  }
+
+  /* TOUCH CONTROLS */
+  #touchControls{
+    width:min(900px,100vw);
+    display:flex;align-items:center;justify-content:space-between;
+    padding:6px 10px 4px;gap:6px;flex-shrink:0;
+    background:rgba(0,0,0,.5);
+  }
+  .dpad{display:flex;gap:4px;align-items:center;}
+  .tBtn{
+    width:56px;height:52px;border-radius:10px;border:none;
+    font-size:18px;cursor:pointer;
+    background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.2);
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    user-select:none;-webkit-user-select:none;
+    active-color:#fff;
+    transition:background .08s;
+    touch-action:none;
+  }
+  .tBtn:active,.tBtn.pressed{background:rgba(255,255,255,.32);border-color:rgba(255,255,255,.5);}
+  #jumpBtn{
+    width:68px;height:68px;border-radius:50%;
+    background:rgba(243,156,18,.25);border:3px solid rgba(243,156,18,.6);
+    font-size:22px;
+  }
+  #jumpBtn:active,#jumpBtn.pressed{background:rgba(243,156,18,.55);}
+  #slideBtn{
+    width:56px;height:52px;border-radius:10px;
+    background:rgba(52,152,219,.2);border:2px solid rgba(52,152,219,.5);
+    font-size:16px;
+  }
+  #slideBtn:active,#slideBtn.pressed{background:rgba(52,152,219,.5);}
+
+  /* OVERLAY */
+  #overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.95);
+    display:flex;flex-direction:column;align-items:center;
+    justify-content:center;color:#fff;z-index:20;padding:16px;overflow-y:auto;
+  }
+  #overlay h1{font-size:13px;margin-bottom:8px;text-align:center;
+    text-shadow:0 0 20px currentColor;line-height:1.8;}
+  #overlay p{font-size:6px;color:#aaa;margin:3px 0;line-height:2;text-align:center;}
+  .ovBtn{
+    padding:10px 22px;border:none;font-family:'Press Start 2P',monospace;font-size:8px;
+    cursor:pointer;border-radius:4px;transition:transform .1s;margin-top:10px;
+  }
+  .ovBtn:active{transform:translateY(2px);}
+
+  /* PRIZE POPUP */
+  #prizePopup{
+    position:fixed;inset:0;background:rgba(0,0,0,.92);
+    display:none;flex-direction:column;align-items:center;justify-content:center;z-index:30;
+    padding:12px;
+  }
+  .pbox{
+    background:linear-gradient(135deg,#0e0e1c,#181830);
+    border:2px solid #f39c12;border-radius:10px;padding:20px 30px;text-align:center;
+    box-shadow:0 0 60px rgba(243,156,18,.5);
+    animation:popIn .35s cubic-bezier(.17,.67,.35,1.3);max-width:460px;width:100%;
+  }
+  @keyframes popIn{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+  .pbox h2{color:#f39c12;font-size:10px;margin-bottom:5px;}
+  .pbox .emo{font-size:48px;margin:6px 0;display:block;}
+  .pbox .pname{color:#fff;font-size:8px;margin:6px 0 2px;}
+  .pbox .psub{color:#777;font-size:6px;line-height:2;}
+  .pbox .skinRow{display:flex;align-items:center;justify-content:center;gap:12px;margin:10px 0 4px;}
+  .skinSwatch{width:30px;height:44px;border-radius:4px;border:2px solid #444;}
+  .skinLbl{color:#888;font-size:6px;margin-top:2px;}
+  .pbox .scNote{color:#f39c12;font-size:6px;margin-top:3px;line-height:2;}
+  .pbox .cBtn{
+    margin-top:12px;padding:9px 20px;background:#f39c12;color:#000;border:none;
+    font-family:'Press Start 2P',monospace;font-size:7px;
+    cursor:pointer;border-radius:3px;box-shadow:0 3px 0 #b8770a;
+  }
+
+  /* WIN POPUP */
+  #winPopup{
+    position:fixed;inset:0;background:rgba(0,0,0,.97);
+    display:none;flex-direction:column;align-items:center;justify-content:center;z-index:40;overflow:hidden;
+  }
+  .wbox{
+    background:linear-gradient(135deg,#0a0a18,#14142a);
+    border:3px solid #fff;border-radius:12px;padding:26px 36px;text-align:center;
+    box-shadow:0 0 80px rgba(255,255,255,.3);
+    animation:winPop .5s cubic-bezier(.17,.67,.35,1.3);max-width:520px;width:92%;
+    position:relative;z-index:1;
+  }
+  @keyframes winPop{from{opacity:0;transform:scale(.5) rotate(-4deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+  .wtitle{font-size:9px;color:#fff;line-height:2.2;text-shadow:0 0 25px #fff;margin-bottom:8px;}
+  .wsub{color:#aaa;font-size:6px;line-height:2;margin:3px 0;}
+  .wbig{font-size:48px;margin:6px 0;display:block;}
+  .wstat{color:#f39c12;font-size:6px;margin:5px 0;}
+  .wBtn{
+    margin-top:14px;padding:10px 22px;background:#fff;color:#000;border:none;
+    font-family:'Press Start 2P',monospace;font-size:8px;
+    cursor:pointer;border-radius:3px;box-shadow:0 4px 0 #aaa;
+  }
+  .conf{position:absolute;width:8px;height:8px;animation:fall linear infinite;pointer-events:none;z-index:0;}
+  @keyframes fall{
+    0%{transform:translateY(-20px) rotate(0deg);opacity:1;}
+    100%{transform:translateY(110vh) rotate(720deg);opacity:0;}
+  }
+
+  /* SECRET ENDING */
+  #secretPopup{
+    position:fixed;inset:0;background:#000;
+    display:none;flex-direction:column;align-items:center;justify-content:center;z-index:50;
+    overflow:hidden;
+  }
+  .sbox{
+    border:3px solid #3498db;border-radius:12px;padding:26px 36px;text-align:center;
+    background:linear-gradient(135deg,#0a0a20,#0d1535);
+    box-shadow:0 0 80px rgba(52,152,219,.5);
+    animation:popIn .5s cubic-bezier(.17,.67,.35,1.3);max-width:540px;width:92%;
+    position:relative;z-index:1;
+  }
+  .sbox .stitle{font-size:9px;color:#3498db;line-height:2.2;text-shadow:0 0 20px #3498db;margin-bottom:8px;}
+  .sbox .ssub{color:#aaa;font-size:6px;line-height:2;margin:3px 0;}
+  .sbox .sbig{font-size:48px;margin:6px 0;display:block;}
+
+  /* POLICE FLASH */
+  #policeFlash{position:fixed;inset:0;pointer-events:none;z-index:24;display:none;}
+
+  /* ARREST MSG */
+  #arrestMsg{
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    display:none;z-index:26;
+    animation:arrestPop .4s cubic-bezier(.17,.67,.35,1.3);
+    width:90%;max-width:460px;
+  }
+  @keyframes arrestPop{from{opacity:0;transform:translate(-50%,-50%) scale(.5)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+  #arrestMsg .amsg{
+    background:#000;border:3px solid #3498db;border-radius:8px;
+    padding:20px 28px;text-align:center;
+    box-shadow:0 0 50px rgba(52,152,219,.6);
+  }
+  #arrestMsg .amsg h2{font-size:11px;color:#3498db;text-shadow:0 0 12px #3498db;margin-bottom:8px;}
+  #arrestMsg .amsg .roast{color:#e74c3c;font-size:6px;font-style:italic;margin-top:6px;line-height:1.9;}
+</style>
+</head>
+<body>
+
+<div id="titleBar">🎮 D E N I G A Z A T I O N 🎮</div>
+<div id="hud">
+  <div id="hpWrap">
+    <span style="font-size:5px;color:#e74c3c;flex-shrink:0;">HP</span>
+    <div id="hpBar"><div id="hpFill"></div><span id="hpLabel">100/100</span></div>
+  </div>
+  <div id="scoreBox">LVL:<span id="lvlVal">1</span> SC:<span id="scoreVal">0</span></div>
+  <div id="skinBox">SKIN:<span id="skinVal">⬛0/10</span></div>
+  <div id="distBox"><span id="distVal">0</span>m</div>
+</div>
+<div id="progWrap"><div id="progBar"><div id="progFill"></div></div></div>
+
+<div id="gameArea">
+  <canvas id="c" width="900" height="380"></canvas>
+</div>
+
+<!-- Touch controls -->
+<div id="touchControls">
+  <div class="dpad">
+    <button class="tBtn" id="btnLeft">◀</button>
+    <button class="tBtn" id="btnRight">▶</button>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="tBtn" id="slideBtn">⬇ SLIDE</button>
+    <button class="tBtn" id="jumpBtn">⬆ JUMP</button>
+  </div>
+</div>
+
+<!-- Police flash -->
+<div id="policeFlash"></div>
+
+<!-- Arrest message -->
+<div id="arrestMsg">
+  <div class="amsg">
+    <h2>🚨 ARRESTED! 🚨</h2>
+    <p id="arrestCause" style="color:#aaa;font-size:6px;margin:4px 0;"></p>
+    <div class="roast" id="arrestRoast"></div>
+    <p style="color:#3498db;font-size:5px;margin-top:6px;">Preparing custody paperwork...</p>
+  </div>
+</div>
+
+<!-- Prize popup -->
+<div id="prizePopup">
+  <div class="pbox">
+    <h2>🎉 CREAM UNLOCKED!</h2>
+    <span class="emo" id="prizeEmo">🧴</span>
+    <div class="pname" id="prizeName">Cream</div>
+    <div class="psub" id="prizeSub">Keep running!</div>
+    <div class="skinRow">
+      <div><div class="skinSwatch" id="skinBefore"></div><div class="skinLbl">BEFORE</div></div>
+      <span style="color:#f39c12;font-size:18px;">→</span>
+      <div><div class="skinSwatch" id="skinAfter"></div><div class="skinLbl">AFTER</div></div>
+    </div>
+    <div class="scNote" id="skinChangeNote"></div>
+    <button class="cBtn" id="continueBtn">CONTINUE ▶</button>
+  </div>
+</div>
+
+<!-- Win popup (5000m) -->
+<div id="winPopup">
+  <div class="wbox">
+    <span class="wbig">🤍✨</span>
+    <div class="wtitle">YOU WON!<br>DENIGGAZATION<br>COMPLETED ✅</div>
+    <div class="wsub">All 10 creams collected. You turned FULLY WHITE.</div>
+    <div class="wsub">The White NPC dropped the chase.</div>
+    <div class="wsub" style="color:#f39c12;margin-top:5px;">But wait... what's at 5500m? 👀</div>
+    <div class="wstat" id="winScore"></div>
+    <button class="wBtn" id="winKeepRunBtn" style="background:#f39c12;color:#000;box-shadow:0 4px 0 #c0830a;margin-right:8px;">
+      KEEP RUNNING →
+    </button>
+    <button class="wBtn" id="winRetryBtn" style="margin-top:8px;">PLAY AGAIN</button>
+  </div>
+</div>
+
+<!-- Secret ending popup (5500m) -->
+<div id="secretPopup">
+  <div class="sbox">
+    <span class="sbig">🔓⛓️🔓</span>
+    <div class="stitle">SECRET ENDING:<br>THE CAGE REVEALED</div>
+    <div class="ssub" style="color:#fff;font-size:7px;margin:6px 0;">You ran past 5500m and found...</div>
+    <div class="ssub" style="color:#3498db;">A cage on the mountain side.</div>
+    <div class="ssub">Inside: <b style="color:#111;background:#eee;padding:0 3px;">BLACK NPCs</b> — arrested, just like they wanted to do to you.</div>
+    <div class="ssub">A police officer stands guard.</div>
+    <div class="ssub" style="color:#f39c12;margin-top:6px;">You stole the bag. You ran. You turned white.</div>
+    <div class="ssub" style="color:#2ecc71;">And you found the truth at the end of the mountain.</div>
+    <div class="ssub" style="color:#e74c3c;margin-top:4px;font-size:6px;">The bag you stole... was your own freedom.</div>
+    <div class="wstat" id="secretScore" style="margin-top:8px;color:#f39c12;font-size:6px;"></div>
+    <button class="wBtn" id="secretRetryBtn" style="background:#3498db;color:#fff;box-shadow:0 4px 0 #1a5f8a;margin-top:12px;">
+      PLAY AGAIN
+    </button>
+  </div>
+</div>
+
+<!-- Main overlay -->
+<div id="overlay">
+  <h1 style="color:#f39c12;">🎮 DENIGAZATION 🎮</h1>
+  <p style="color:#fff;font-size:7px;margin-top:4px;">📖 THE STORY:</p>
+  <p>You are the <b style="color:#ddd;">⬛ BLACK runner</b></p>
+  <p>You <b style="color:#f39c12;">STOLE A BAG</b> from the White NPC 💼</p>
+  <p>Now the <b style="color:#fff;">⬜ WHITE NPC</b> is chasing you to take it back!</p>
+  <p style="color:#3498db;font-size:6px;margin-top:4px;">👮 Get caught = POLICE ARRESTS YOU</p>
+  <p>🪨 Rock <b style="color:#f39c12;">-20HP</b> · 🔺 Spike <b style="color:#e74c3c;">-35HP</b> · ❤️ Heal pickups restore HP!</p>
+  <p style="color:#f39c12;">🧴 CREAM every 500m → skin lightens</p>
+  <p style="color:#2ecc71;font-size:6px;">At 5000m turn FULLY WHITE → NPC stops → WIN!</p>
+  <p style="color:#3498db;font-size:6px;">Run to 5500m for a SECRET ENDING... 👀</p>
+  <button class="ovBtn" id="startBtn"
+    style="background:#f39c12;color:#000;box-shadow:0 4px 0 #c0830a;">
+    START RUNNING!
+  </button>
+</div>
+
+<script>
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+// Logical canvas size
+const CW=900,CH=380;
+canvas.width=CW;canvas.height=CH;
+
+// Scale canvas to fit container
+function resizeCanvas(){
+  const maxW=Math.min(900,window.innerWidth);
+  canvas.style.width=maxW+'px';
+  canvas.style.height=(maxW*CH/CW)+'px';
+}
+resizeCanvas();
+window.addEventListener('resize',resizeCanvas);
+
+const W=CW,H=CH;
+
+// ── CONSTANTS ──────────────────────────────────────
+const GROUND_Y=300;
+const MAX_HP=100,ROCK_DMG=20,SPIKE_DMG=35;
+const WIN_DIST=5000;     // NPC stops, win popup
+const SECRET_DIST=5500;  // secret ending
+const MAP_END=SECRET_DIST;
+const PRIZE_INTERVAL=500;
+const NUM_PRIZES=10;
+const MAP_WORLD=MAP_END*10; // 55,000 world px
+const PW=20,PH=30,NW=20,NH=30;
+const GRAVITY=0.45,JUMP_VEL=-11;
+
+const SKIN=[
+  '#111111','#2a1e0e','#3d2c18','#5a3e28','#7a5638',
+  '#a07050','#c4926e','#dbb898','#ecdcca','#f5ede2','#ffffff'
+];
+
+const PRIZE_DEFS=[
+  {emoji:'🧴',name:'Fair & Lovely Cream',      sub:'Glow journey starts!'},
+  {emoji:'✨',name:'Glow Booster Serum',         sub:'Luminous!'},
+  {emoji:'💎',name:'Diamond Whitening Cream',    sub:'Brilliant!'},
+  {emoji:'🌟',name:'Golden Radiance Lotion',     sub:'Radiant!'},
+  {emoji:'🧪',name:'Pearl Brightening Essence',  sub:'Halfway!'},
+  {emoji:'👑',name:'Royal Ivory Cream',          sub:'Almost ivory!'},
+  {emoji:'🌸',name:'Sakura Brightening Mask',    sub:'Blooming pale!'},
+  {emoji:'💫',name:'Starlight Whitening Gel',    sub:'Near-perfect!'},
+  {emoji:'🏆',name:'Platinum Glow Treatment',    sub:'Almost white!'},
+  {emoji:'🎖️',name:'ULTIMATE GLOW TROPHY',       sub:'FULLY WHITE — YOU WIN!'},
+];
+const PRIZES=PRIZE_DEFS.map((d,i)=>({...d,dist:(i+1)*PRIZE_INTERVAL}));
+
+const ROASTS=[
+  "Bro moves slower than a government website loading.",
+  "You got arrested in a VIDEO GAME. New all-time low.",
+  "Even the police stopped laughing to feel sorry for you.",
+  "Your running speed is buffering at 144p.",
+  "You died to rocks. They don't even move, bro.",
+  "The NPC wasn't even trying and you still got caught.",
+  "Your reflexes are on airplane mode. No signal.",
+  "Bro really thought he escaped and then tripped on a pebble.",
+  "You move like you're wearing cement sandals.",
+  "The mountain itself is embarrassed for you.",
+  "Man got outrun by consequences. Impressive.",
+  "Even your excuse for losing is slower than you.",
+  "You got caught before the game even got started.",
+  "Police didn't even need to run. They walked.",
+  "Your ancestors are shaking their heads right now.",
+  "If slowness was a superpower, you'd be unstoppable.",
+];
+
+// ── STATE ──────────────────────────────────────────
+let state='idle';
+let score=0,distance=0,hp=MAX_HP,speed=2.2;
+let frameCount=0,cameraX=0,screenShake=0;
+let collectedPrizes=new Set();
+let skinStage=0;
+let npcStopped=false;
+let winShown=false;
+let level=1;
+let particles=[],dmgNums=[];
+let terrainSegs=[],obstList=[],healList=[];
+let player={},npc={};
+let policeObj=null;
+let deathByNPC=false;
+
+// ── TOUCH INPUT ────────────────────────────────────
+const touch={left:false,right:false,jump:false,slide:false};
+function bindTouch(id,prop){
+  const el=document.getElementById(id);
+  ['touchstart','mousedown'].forEach(ev=>{
+    el.addEventListener(ev,e=>{e.preventDefault();touch[prop]=true;el.classList.add('pressed');},{passive:false});
+  });
+  ['touchend','touchcancel','mouseup','mouseleave'].forEach(ev=>{
+    el.addEventListener(ev,e=>{e.preventDefault();touch[prop]=false;el.classList.remove('pressed');},{passive:false});
+  });
+}
+bindTouch('btnLeft','left');
+bindTouch('btnRight','right');
+bindTouch('jumpBtn','jump');
+bindTouch('slideBtn','slide');
+
+// ── KEYBOARD ──────────────────────────────────────
+const keys={};
+document.addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
+});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+
+function isLeft(){return keys['KeyA']||keys['ArrowLeft']||touch.left;}
+function isRight(){return keys['KeyD']||keys['ArrowRight']||touch.right;}
+function isJump(){return keys['Space']||keys['KeyW']||keys['ArrowUp']||touch.jump;}
+function isSlide(){return keys['KeyS']||keys['ArrowDown']||touch.slide;}
+
+// ── TERRAIN ────────────────────────────────────────
+function genTerrain(){
+  terrainSegs=[];obstList=[];healList=[];
+  terrainSegs.push({x:0,w:700,y:GROUND_Y,type:'ground'});
+  let x=700;
+  const end=MAP_WORLD+2000;
+  while(x<end){
+    // Stop generating obstacles near secret ending scene
+    const isSecretZone=x>SECRET_DIST*10-2000;
+    const r=Math.random();
+    const prog=x/MAP_WORLD;
+    if(!isSecretZone&&r<0.09&&x>1200){
+      const gw=46+Math.random()*58;
+      terrainSegs.push({x,w:gw,y:GROUND_Y,type:'gap'});x+=gw;
+    } else if(!isSecretZone&&r<0.17){
+      const lw=90+Math.random()*130,ly=GROUND_Y-30-Math.random()*44;
+      terrainSegs.push({x,w:lw,y:ly,type:'ledge'});
+      terrainSegs.push({x:x+lw,w:30,y:GROUND_Y,type:'gap'});x+=lw+30;
+    } else {
+      const gw=isSecretZone?800:100+Math.random()*240;
+      terrainSegs.push({x,w:gw,y:GROUND_Y,type:'ground'});
+      if(!isSecretZone){
+        const density=Math.min(0.70,0.32+prog*0.42);
+        if(x>1200&&gw>100&&Math.random()<density){
+          const ox=x+36+Math.random()*(gw-72);
+          const ot=Math.random()<0.5?'rock':'spike';
+          const oh=ot==='rock'?20+Math.random()*20:28+Math.random()*12;
+          obstList.push({x:ox,y:GROUND_Y-oh,w:ot==='rock'?oh*1.3:14,h:oh,type:ot});
+        }
+      }
+      x+=gw;
+    }
+  }
+  terrainSegs.push({x:end,w:2000,y:GROUND_Y,type:'ground'});
+
+  // Scatter heal pickups at random distances 600–4500m
+  for(let m=600;m<4500;m+=Math.floor(400+Math.random()*600)){
+    const wx=m*10+Math.random()*200-100;
+    healList.push({x:wx,y:GROUND_Y-30,w:20,h:20,taken:false});
+  }
+}
+
+function groundAt(wx){
+  for(const s of terrainSegs)
+    if(wx>=s.x&&wx<=s.x+s.w)return s.type==='gap'?null:s.y;
+  return null;
+}
+
+function resetPlayer(){
+  player={x:250,y:GROUND_Y-PH,vx:0,vy:0,
+    onGround:false,sliding:false,slideTimer:0,
+    jumpCount:0,animFrame:0,animTimer:0,
+    invincible:0,_jumpHeld:false,arrested:false};
+}
+function resetNPC(){
+  npc={x:player.x-150,y:GROUND_Y-NH,vx:0,vy:0,
+    onGround:false,animFrame:0,animTimer:0};
+}
+
+// ── PARTICLES ──────────────────────────────────────
+function spawnParts(x,y,col,n=8,big=false){
+  for(let i=0;i<n;i++)
+    particles.push({x,y,
+      vx:(Math.random()-.5)*(big?9:5),
+      vy:-Math.random()*(big?9:5),
+      life:30+Math.random()*22,maxLife:52,
+      col,r:big?2+Math.random()*5:1+Math.random()*3});
+}
+
+// ── BACKGROUND ─────────────────────────────────────
+function drawBG(){
+  const prog=Math.min(distance/MAP_END,1);
+  const sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,`hsl(${220-prog*30},${40-prog*20}%,${7+prog*5}%)`);
+  sky.addColorStop(1,`hsl(${210},30%,${12+prog*8}%)`);
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=`rgba(255,255,255,${0.25+prog*0.45})`;
+  for(let i=0;i<60;i++)ctx.fillRect((i*137+50)%W,(i*79+10)%200,i%4===0?2:1,i%4===0?2:1);
+  if(prog>0.3){
+    const ma=Math.min((prog-0.3)/.2,1);
+    ctx.save();ctx.globalAlpha=ma*.7;
+    ctx.fillStyle='#f0ead0';ctx.beginPath();ctx.arc(750,45,22,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=`hsl(220,40%,${10+prog*5}%)`;ctx.beginPath();ctx.arc(761,41,18,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  ctx.fillStyle='rgba(20,30,50,.85)'; drawMtns(.04,60,160,12);
+  ctx.fillStyle='rgba(18,46,26,.85)'; drawMtns(.13,100,220,8);
+  ctx.fillStyle='rgba(8,24,12,.90)';  drawMtns(.28,150,270,5);
+}
+function drawMtns(par,mn,mx,peaks){
+  const ox=-(cameraX*par)%(W*1.5);
+  ctx.beginPath();ctx.moveTo(ox-W*2,H);
+  const pw=W*3/peaks;
+  for(let i=-2;i<=peaks+2;i++){
+    const bx=ox+i*pw-W*2;
+    const pk=mn+Math.sin(i*2.718+par*10)*((mx-mn)/2)+(mx-mn)/2;
+    ctx.lineTo(bx+pw*.5,H-pk);ctx.lineTo(bx+pw,H-28);
+  }
+  ctx.lineTo(ox+W*4,H);ctx.closePath();ctx.fill();
+}
+
+// ── TERRAIN DRAW ───────────────────────────────────
+function drawTerrain(){
+  const vL=cameraX-120,vR=cameraX+W+120;
+  for(const s of terrainSegs){
+    if(s.x+s.w<vL||s.x>vR||s.type==='gap')continue;
+    const sx=s.x-cameraX,sy=s.y,sw=s.w;
+    const g=ctx.createLinearGradient(sx,sy,sx,H);
+    g.addColorStop(0,'#2d5a1b');g.addColorStop(.04,'#1e3d12');
+    g.addColorStop(.12,'#3a2918');g.addColorStop(1,'#180f05');
+    ctx.fillStyle=g;ctx.fillRect(sx,sy,sw,H-sy);
+    ctx.fillStyle='#438c22';ctx.fillRect(sx,sy,sw,4);
+    ctx.fillStyle='#56a82c';ctx.fillRect(sx,sy,sw,2);
+  }
+  for(const ob of obstList){
+    if(ob.x+ob.w<vL||ob.x>vR)continue;
+    ob.type==='rock'?drawRock(ob.x-cameraX,ob.y,ob.w,ob.h):drawSpike(ob.x-cameraX,ob.y,ob.w,ob.h);
+  }
+  // Heal pickups
+  for(const h of healList){
+    if(h.taken||h.x+h.w<vL||h.x>vR)continue;
+    const hx=h.x-cameraX;
+    const pulse=0.7+Math.sin(frameCount*.15)*0.3;
+    ctx.save();ctx.globalAlpha=pulse;
+    ctx.fillStyle='#e74c3c';
+    ctx.font='18px serif';ctx.fillText('❤️',hx,h.y);
+    // glow
+    ctx.strokeStyle='rgba(231,76,60,0.4)';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(hx+9,h.y-6,14,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  }
+}
+function drawRock(x,y,w,h){
+  ctx.save();
+  ctx.fillStyle='#4a4a4a';ctx.beginPath();ctx.ellipse(x+w/2,y+h*.62,w*.56,h*.52,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.1)';ctx.beginPath();ctx.ellipse(x+w*.33,y+h*.28,w*.14,h*.1,-.3,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+function drawSpike(x,y,w,h){
+  ctx.save();
+  ctx.fillStyle='#b03020';ctx.beginPath();ctx.moveTo(x+w/2,y);ctx.lineTo(x+w,y+h);ctx.lineTo(x,y+h);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#d94030';ctx.beginPath();ctx.moveTo(x+w/2,y+3);ctx.lineTo(x+w*.62,y+h*.48);ctx.lineTo(x+w*.38,y+h*.48);ctx.closePath();ctx.fill();
+  ctx.restore();
+}
+
+// ── SECRET ENDING SCENE ────────────────────────────
+function drawSecretScene(){
+  // Draw cage with black NPCs + police officer at ~5200m world
+  const sceneX=SECRET_DIST*10-3000; // world x
+  const sx=sceneX-cameraX;
+  if(sx>W+200||sx<-400)return;
+
+  // Cage bars
+  ctx.save();
+  ctx.strokeStyle='#888';ctx.lineWidth=3;
+  const cageX=sx+100,cageY=GROUND_Y-90,cageW=160,cageH=88;
+  ctx.strokeRect(cageX,cageY,cageW,cageH);
+  // Vertical bars
+  for(let b=1;b<5;b++){
+    ctx.beginPath();
+    ctx.moveTo(cageX+b*(cageW/5),cageY);
+    ctx.lineTo(cageX+b*(cageW/5),cageY+cageH);
+    ctx.stroke();
+  }
+  ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(cageX,cageY,cageW,cageH);
+
+  // Black NPCs in cage (3 of them, sad)
+  const bNpcCols=['#111','#1a1a1a','#222'];
+  for(let i=0;i<3;i++){
+    const bx=cageX+18+i*46,by=cageY+cageH-PH-4;
+    ctx.fillStyle=bNpcCols[i];
+    ctx.fillRect(bx,by,PW-4,PH);
+    ctx.fillRect(bx+2,by-14,14,14);
+    ctx.fillStyle='#fff';
+    ctx.fillRect(bx+4,by-10,3,3);
+    ctx.fillRect(bx+9,by-10,3,3);
+    // Chains
+    ctx.strokeStyle='#888';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(bx+8,by+PH);ctx.lineTo(bx+8,GROUND_Y);ctx.stroke();
+    // sad face
+    ctx.fillStyle='rgba(255,255,255,0.3)';
+    ctx.font='8px serif';ctx.fillText('😢',bx+2,by-14);
+  }
+
+  // Sign on cage
+  ctx.fillStyle='#e74c3c';ctx.fillRect(cageX+30,cageY-28,100,20);
+  ctx.fillStyle='#fff';ctx.font='6px "Press Start 2P"';
+  ctx.fillText('DETAINED',cageX+34,cageY-14);
+
+  // Police officer guarding
+  const polX=cageX+cageW+20,polY=GROUND_Y-PH-2;
+  ctx.fillStyle='#1a3a6e';ctx.fillRect(polX,polY,PW,PH);
+  ctx.fillStyle='#d4a574';ctx.fillRect(polX+2,polY-14,16,14);
+  ctx.fillStyle='#0d2340';ctx.fillRect(polX,polY-18,PW+2,6);ctx.fillRect(polX+4,polY-21,12,4);
+  ctx.fillStyle='#f1c40f';ctx.font='10px serif';ctx.fillText('⭐',polX+4,polY+10);
+  ctx.fillStyle='#333';ctx.fillRect(polX+4,polY-10,3,3);ctx.fillRect(polX+10,polY-10,3,3);
+  // Police label
+  ctx.fillStyle='rgba(52,152,219,0.9)';
+  ctx.font='6px "Press Start 2P"';ctx.fillText('👮OFFICER',polX-12,polY-24);
+
+  ctx.restore();
+}
+
+// ── BAG ICON ──────────────────────────────────────
+function drawBag(){
+  // Show the stolen bag floating near player
+  ctx.save();
+  ctx.font='16px serif';
+  const bx=player.x-cameraX+PW+2;
+  const by=player.y+2+Math.sin(frameCount*.08)*3;
+  ctx.fillText('💼',bx,by);
+  ctx.restore();
+}
+
+// ── DRAW CHARACTER ─────────────────────────────────
+function getPlayerCol(){return SKIN[Math.min(skinStage,10)];}
+function drawChar(p,col,isSlide,isNPC=false){
+  const px=p.x-cameraX,py=p.y;
+  const bh=isSlide?PH*.55:PH,bw=isSlide?PW*1.4:PW;
+  const by=isSlide?py+PH-bh:py;
+  ctx.save();
+  if(p.invincible&&Math.floor(frameCount/4)%2===0)ctx.globalAlpha=.28;
+  // shadow
+  const gy=groundAt(p.x+PW/2);
+  if(gy&&gy-p.y<180){
+    ctx.save();ctx.globalAlpha=.2;ctx.fillStyle='#000';
+    ctx.beginPath();ctx.ellipse(px+PW/2,gy,PW*.7,4,0,0,Math.PI*2);ctx.fill();ctx.restore();
+  }
+  ctx.fillStyle=col;
+  ctx.fillRect(px,by,bw,bh);
+  ctx.fillRect(px+(bw-16)/2,by-16,16,16);
+  const ec=isNPC?'#333':(skinStage>=7?'#555':'#fff');
+  ctx.fillStyle=ec;
+  ctx.fillRect(px+(bw-16)/2+3,by-11,3,3);
+  ctx.fillRect(px+(bw-16)/2+9,by-11,3,3);
+  if(!isSlide){
+    const lsw=Math.sin(p.animFrame*.4)*7;
+    ctx.fillStyle=col;
+    ctx.fillRect(px+2,by+bh-3,7,7+lsw);
+    ctx.fillRect(px+bw-9,by+bh-3,7,7-lsw);
+    const asw=Math.sin(p.animFrame*.4+Math.PI)*6;
+    ctx.fillRect(px-4,by+4+asw,5,12);
+    ctx.fillRect(px+bw-1,by+4-asw,5,12);
+  }
+  if(isNPC&&npcStopped){
+    ctx.font='12px serif';ctx.fillText('💤',px-2,by-18);
+  }
+  ctx.restore();
+}
+
+// ── POLICE FIGURE (arrest animation) ──────────────
+function initPolice(){
+  policeObj={x:cameraX+W+40,y:GROUND_Y-PH,vx:-5,animFrame:0,animTimer:0,reached:false};
+}
+function updatePolice(){
+  if(!policeObj||policeObj.reached)return;
+  policeObj.x+=policeObj.vx;
+  policeObj.animTimer++;
+  if(policeObj.animTimer>3){policeObj.animFrame++;policeObj.animTimer=0;}
+  if(policeObj.x<=player.x+PW+6)policeObj.reached=true;
+}
+function drawPolice(){
+  if(!policeObj)return;
+  const px=policeObj.x-cameraX,py=policeObj.y;
+  ctx.save();
+  ctx.fillStyle='#1a3a6e';ctx.fillRect(px,py,PW,PH);
+  ctx.fillStyle='#d4a574';ctx.fillRect(px+2,py-14,16,14);
+  ctx.fillStyle='#0d2340';ctx.fillRect(px,py-18,PW+2,5);ctx.fillRect(px+3,py-21,12,4);
+  ctx.fillStyle='#f1c40f';ctx.font='9px serif';ctx.fillText('⭐',px+4,py+10);
+  ctx.fillStyle='#333';ctx.fillRect(px+4,py-10,3,3);ctx.fillRect(px+10,py-10,3,3);
+  if(!policeObj.reached){
+    const lsw=Math.sin(policeObj.animFrame*.4)*7;
+    ctx.fillStyle='#1a3a6e';
+    ctx.fillRect(px+2,py+PH-3,7,7+lsw);
+    ctx.fillRect(px+PW-9,py+PH-3,7,7-lsw);
+    const asw=Math.sin(policeObj.animFrame*.4+Math.PI)*5;
+    ctx.fillRect(px-4,py+4+asw,5,12);
+    ctx.fillRect(px+PW-1,py+4-asw,5,12);
+  } else {
+    ctx.font='14px serif';ctx.fillText('🔒',px-10,py);ctx.fillText('🔒',px+PW-2,py);
+  }
+  ctx.restore();
+}
+
+// ── HEARTS HUD ─────────────────────────────────────
+function drawHearts(){
+  const alive=Math.ceil(hp/20);
+  ctx.save();
+  for(let i=0;i<5;i++){
+    ctx.globalAlpha=i<alive?1:.12;
+    ctx.font='17px serif';ctx.fillText('❤️',8+i*24,26);
+  }
+  ctx.restore();
+}
+
+// ── DMG NUMBERS ────────────────────────────────────
+function spawnDmg(x,y,d,heal=false){
+  dmgNums.push({x:x-cameraX,y,txt:(heal?'+':'-')+d,life:50,maxLife:50,heal});
+}
+function updateDmg(){dmgNums=dmgNums.filter(d=>d.life>0);dmgNums.forEach(d=>{d.y-=.8;d.life--;});}
+function drawDmg(){
+  ctx.save();ctx.font='8px "Press Start 2P"';
+  dmgNums.forEach(d=>{
+    ctx.globalAlpha=d.life/d.maxLife;
+    ctx.fillStyle=d.heal?'#2ecc71':'#ff3333';
+    ctx.fillText(d.txt,d.x,d.y);
+  });ctx.restore();
+}
+
+// ── HP BAR ─────────────────────────────────────────
+function updateHPBar(){
+  const pct=Math.max(0,hp/MAX_HP*100);
+  const f=document.getElementById('hpFill');
+  f.style.width=pct+'%';
+  document.getElementById('hpLabel').textContent=`${hp}/100`;
+  f.style.background=hp>60?'linear-gradient(90deg,#1e8449,#27ae60)':hp>30?'linear-gradient(90deg,#d35400,#e67e22)':'linear-gradient(90deg,#7b241c,#e74c3c)';
+}
+function updateSkinLabel(){
+  const names=['⬛','⬛','🟫','🟫','🟤','🟤','🟡','🏻','🏻','🏻','⬜'];
+  document.getElementById('skinVal').textContent=`${names[skinStage]}${skinStage}/10`;
+}
+function updateLvlLabel(){document.getElementById('lvlVal').textContent=level;}
+
+// ── PLAYER PHYSICS ─────────────────────────────────
+function updatePlayer(){
+  if(player.arrested)return;
+  if(player.invincible>0)player.invincible--;
+
+  if(isRight())player.vx=Math.min(player.vx+0.65,speed+2.5);
+  else if(isLeft())player.vx=Math.max(player.vx-0.65,-speed);
+  else player.vx*=.80;
+
+  if(isSlide()&&player.onGround){player.sliding=true;player.slideTimer=18;player.vx+=1.2;}
+  if(player.slideTimer>0)player.slideTimer--;else player.sliding=false;
+
+  if(isJump()&&!player._jumpHeld&&player.jumpCount<2){
+    player.vy=JUMP_VEL+(player.jumpCount===1?2:0);
+    player.jumpCount++;player.onGround=false;
+    spawnParts(player.x+PW/2,player.y+PH,'#438c22',4);
+    player._jumpHeld=true;
+  }
+  if(!isJump())player._jumpHeld=false;
+
+  player.vy+=GRAVITY;player.x+=player.vx;player.y+=player.vy;
+  if(player.x<cameraX+24)player.x=cameraX+24;
+
+  const gY=groundAt(player.x+PW/2);
+  if(gY!==null&&player.y+PH>=gY&&player.vy>=0){
+    player.y=gY-PH;player.vy=0;player.onGround=true;player.jumpCount=0;
+  } else {
+    player.onGround=false;
+    if(gY===null&&player.y+PH>H+14)hitObs(40);
+  }
+
+  // Obstacle collision
+  if(player.invincible===0){
+    for(const ob of obstList){
+      const ph2=player.sliding?PH*.55:PH,pw2=player.sliding?PW*1.4:PW;
+      const by2=player.sliding?player.y+PH-ph2:player.y;
+      if(player.x<ob.x+ob.w&&player.x+pw2>ob.x&&by2<ob.y+ob.h&&by2+ph2>ob.y){
+        hitObs(ob.type==='rock'?ROCK_DMG:SPIKE_DMG);break;
+      }
+    }
+  }
+
+  // Heal pickup collision
+  for(const h of healList){
+    if(!h.taken&&player.x<h.x+h.w&&player.x+PW>h.x&&player.y<h.y+h.h&&player.y+PH>h.y){
+      h.taken=true;
+      const heal=Math.min(25,MAX_HP-hp);
+      if(heal>0){
+        hp=Math.min(MAX_HP,hp+25);
+        updateHPBar();
+        spawnDmg(player.x+PW/2,player.y-8,25,true);
+        spawnParts(player.x+PW/2,player.y,'#2ecc71',8,true);
+      }
+    }
+  }
+
+  if(Math.abs(player.vx)>.3){
+    player.animTimer++;
+    if(player.animTimer>3){player.animFrame++;player.animTimer=0;}
+  }
+}
+
+function hitObs(dmg){
+  if(player.invincible>0||player.arrested)return;
+  hp=Math.max(0,hp-dmg);updateHPBar();
+  spawnDmg(player.x+PW/2,player.y-8,dmg);
+  spawnParts(player.x+PW/2,player.y+PH/2,'#e74c3c',8,true);
+  screenShake=8;player.invincible=75;player.vy=-5;
+  if(hp<=0)startArrest(false);
+}
+
+function npcCatch(){
+  if(player.invincible>0||player.arrested)return;
+  startArrest(true);
+}
+
+// ── ARREST SEQUENCE ────────────────────────────────
+function startArrest(byNPC){
+  if(state==='arresting'||state==='dead'||state==='win'||state==='secret')return;
+  state='arresting';deathByNPC=byNPC;
+  player.arrested=true;player.vx=0;player.vy=0;
+  cancelAnimationFrame(animId);
+
+  const flash=document.getElementById('policeFlash');
+  flash.style.display='block';
+  let fc=0;
+  const fi=setInterval(()=>{
+    fc++;
+    flash.style.background=fc%2===0?'rgba(52,152,219,0.25)':'rgba(231,76,60,0.18)';
+    if(fc>=8){clearInterval(fi);flash.style.display='none';}
+  },110);
+
+  initPolice();
+  let pAnim;
+  function policeRun(){
+    if(policeObj&&!policeObj.reached){
+      updatePolice();
+      ctx.save();ctx.clearRect(-30,-30,W+60,H+60);
+      drawBG();drawTerrain();drawParts();
+      drawChar(npc,'#eeeeee',false,true);
+      drawChar(player,getPlayerCol(),player.sliding,false);
+      drawBag();drawPolice();drawHearts();drawDmg();
+      ctx.restore();
+      pAnim=requestAnimationFrame(policeRun);
+    } else {
+      cancelAnimationFrame(pAnim);
+      setTimeout(()=>showArrestScreen(byNPC),500);
+    }
+  }
+  policeRun();
+}
+
+function showArrestScreen(byNPC){
+  const roast=ROASTS[Math.floor(Math.random()*ROASTS.length)];
+  document.getElementById('arrestCause').textContent=byNPC?'Caught by the White NPC!':'Taken out by obstacles!';
+  document.getElementById('arrestRoast').textContent=`"${roast}"`;
+  document.getElementById('arrestMsg').style.display='block';
+  setTimeout(()=>{
+    document.getElementById('arrestMsg').style.display='none';
+    triggerGameOver(byNPC);
+  },2800);
+}
+
+// ── NPC — ALWAYS ON SCREEN, ALWAYS CHASING ─────────
+function updateNPC(){
+  if(npcStopped){
+    npc.vy+=GRAVITY;npc.y+=npc.vy;
+    const gY=groundAt(npc.x+NW/2);
+    if(gY!==null&&npc.y+NH>=gY&&npc.vy>=0){npc.y=gY-NH;npc.vy=0;npc.onGround=true;}
+    npc.animTimer++;if(npc.animTimer>8){npc.animFrame++;npc.animTimer=0;}
+    return;
+  }
+  const ns=speed*0.97+Math.min(distance/1800,2.5);
+  const diff=player.x-npc.x;
+  if(diff>10)npc.vx=Math.min(npc.vx+0.60,ns);
+  else if(diff<-10)npc.vx=Math.max(npc.vx-.45,-ns*.4);
+  else npc.vx*=.88;
+
+  for(const ob of obstList){
+    if(ob.x>npc.x&&ob.x<npc.x+110&&npc.onGround){npc.vy=JUMP_VEL+2;npc.onGround=false;}
+  }
+  for(const s of terrainSegs){
+    if(s.type==='gap'&&s.x>npc.x+8&&s.x<npc.x+100&&npc.onGround){npc.vy=JUMP_VEL;npc.onGround=false;}
+  }
+  npc.vy+=GRAVITY;npc.x+=npc.vx;npc.y+=npc.vy;
+
+  // ─ ALWAYS KEEP NPC INSIDE SCREEN FRAME ─
+  const minNX=cameraX+22;
+  const maxNX=player.x-22;
+  if(npc.x<minNX){npc.x=minNX;if(npc.vx<0)npc.vx=0;}
+  if(npc.x>maxNX){npc.x=maxNX;}
+
+  const gY=groundAt(npc.x+NW/2);
+  if(gY!==null&&npc.y+NH>=gY&&npc.vy>=0){npc.y=gY-NH;npc.vy=0;npc.onGround=true;}
+  else{
+    npc.onGround=false;
+    if(npc.y>H+60){
+      npc.y=GROUND_Y-NH;npc.vy=0;
+      npc.x=Math.max(cameraX+22,player.x-180);
+    }
+  }
+  if(player.invincible===0&&!player.arrested&&Math.abs(npc.x-player.x)<24&&Math.abs(npc.y-player.y)<30){
+    npcCatch();
+  }
+  npc.animTimer++;if(npc.animTimer>3){npc.animFrame++;npc.animTimer=0;}
+}
+
+// ── PRIZES ─────────────────────────────────────────
+function checkPrizes(){
+  for(const p of PRIZES){
+    if(!collectedPrizes.has(p.dist)&&distance>=p.dist){
+      collectedPrizes.add(p.dist);
+      level=collectedPrizes.size+1;updateLvlLabel();
+      showPrize(p);return;
+    }
+  }
+}
+
+function showPrize(p){
+  state='prize';
+  const oldStage=skinStage;
+  skinStage=Math.min(skinStage+1,10);
+  updateSkinLabel();
+  const isFullyWhite=skinStage===10;
+  if(isFullyWhite&&!npcStopped){
+    npcStopped=true;
+    for(let i=0;i<8;i++)setTimeout(()=>{
+      spawnParts(W/2+cameraX,H/2,'#fff',18,true);
+      spawnParts(W/2+cameraX,H/2,'#f0e080',8,true);
+    },i*70);
+  }
+  document.getElementById('prizeEmo').textContent=p.emoji;
+  document.getElementById('prizeName').textContent=p.name;
+  document.getElementById('prizeSub').textContent=p.sub;
+  document.getElementById('skinBefore').style.background=SKIN[oldStage];
+  document.getElementById('skinAfter').style.background=SKIN[skinStage];
+  document.getElementById('skinChangeNote').textContent=isFullyWhite
+    ?'✨ FULLY WHITE! NPC STOPS!'
+    :`Stage ${oldStage}→${skinStage} (${skinStage}/10)`;
+  document.getElementById('prizePopup').style.display='flex';
+  for(let i=0;i<4;i++)setTimeout(()=>{
+    spawnParts(W/2+cameraX,H/3,'#f39c12',12,true);
+    spawnParts(W/2+cameraX,H/3,'#fff',5,true);
+  },i*100);
+  document.getElementById('continueBtn').onclick=()=>{
+    document.getElementById('prizePopup').style.display='none';
+    if(isFullyWhite&&!winShown){winShown=true;triggerWin();}
+    else{state='playing';gameLoop();}
+  };
+}
+
+// ── HUD ────────────────────────────────────────────
+function updateHUD(){
+  score+=Math.floor(speed);
+  distance=Math.floor(player.x/10);
+  document.getElementById('scoreVal').textContent=score;
+  document.getElementById('distVal').textContent=distance;
+  document.getElementById('progFill').style.width=Math.min(distance/MAP_END*100,100)+'%';
+  checkPrizes();
+  // Check secret ending
+  if(distance>=SECRET_DIST&&state==='playing')triggerSecretEnding();
+}
+
+function updateCamera(){
+  cameraX+=(player.x-W*.30-cameraX)*.1;
+  if(cameraX<0)cameraX=0;
+}
+function updateParts(){
+  particles=particles.filter(p=>p.life>0);
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.15;p.life--;});
+}
+function drawParts(){
+  particles.forEach(p=>{
+    ctx.save();ctx.globalAlpha=p.life/p.maxLife;ctx.fillStyle=p.col;
+    ctx.beginPath();ctx.arc(p.x-cameraX,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.restore();
+  });
+}
+function rampSpeed(){speed=2.2+Math.min(distance/1400,3.0);}
+
+// Milestone dots
+function buildDots(){
+  const bar=document.getElementById('progBar');
+  bar.querySelectorAll('.mdot').forEach(e=>e.remove());
+  PRIZES.forEach(p=>{
+    const d=document.createElement('div');d.className='mdot';
+    d.style.left=(p.dist/MAP_END*100)+'%';d.title=p.emoji+' '+p.name;
+    bar.appendChild(d);
+  });
+  // Secret ending marker
+  const sm=document.createElement('div');sm.className='mdot';
+  sm.style.left=(SECRET_DIST/MAP_END*100)+'%';
+  sm.style.background='rgba(52,152,219,.8)';sm.title='👀 Secret Ending';
+  bar.appendChild(sm);
+}
+function refreshDots(){
+  document.querySelectorAll('.mdot').forEach((dot,i)=>{
+    if(PRIZES[i]&&collectedPrizes.has(PRIZES[i].dist))dot.classList.add('done');
+  });
+}
+
+function spawnConfetti(){
+  const wp=document.getElementById('winPopup');
+  const cols=['#f39c12','#e74c3c','#2ecc71','#3498db','#9b59b6','#fff','#f1c40f'];
+  for(let i=0;i<80;i++){
+    const c=document.createElement('div');c.className='conf';
+    c.style.cssText=`left:${Math.random()*100}%;background:${cols[i%cols.length]};`+
+      `width:${5+Math.random()*8}px;height:${5+Math.random()*8}px;`+
+      `border-radius:${Math.random()<.5?'50%':'2px'};`+
+      `animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*1.5}s;`;
+    wp.appendChild(c);
+  }
+}
+
+// ── GAME LOOP ───────────────────────────────────────
+let animId;
+function gameLoop(){
+  if(state!=='playing')return;
+  frameCount++;
+  let sx=0,sy=0;
+  if(screenShake>0){sx=(Math.random()-.5)*screenShake;sy=(Math.random()-.5)*screenShake*.4;screenShake=Math.max(0,screenShake-1.5);}
+  ctx.save();ctx.translate(sx,sy);
+  ctx.clearRect(-30,-30,W+60,H+60);
+  drawBG();
+  // Draw secret scene if near 5500m
+  if(distance>SECRET_DIST-500)drawSecretScene();
+  drawTerrain();drawParts();
+  drawChar(npc,'#eeeeee',false,true);
+  drawChar(player,getPlayerCol(),player.sliding,false);
+  drawBag();
+  drawHearts();drawDmg();
+
+  if(!npcStopped){
+    const nsx=npc.x-cameraX;
+    if(nsx<110){
+      ctx.fillStyle=`rgba(200,20,20,${.15+Math.sin(frameCount*.18)*.13})`;
+      ctx.fillRect(0,0,10,H);
+    }
+    ctx.save();ctx.font='5px "Press Start 2P"';
+    ctx.fillStyle='rgba(255,70,70,.85)';
+    const nsx2=npc.x-cameraX;
+    ctx.fillText('👮HUNTER',nsx2-12,npc.y-NH-4);ctx.restore();
+  } else {
+    const gl=.35+Math.sin(frameCount*.07)*.28;
+    ctx.save();
+    ctx.strokeStyle=`rgba(255,255,220,${gl})`;ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(player.x-cameraX+PW/2,player.y+PH/2,28,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+    const nsx2=npc.x-cameraX;
+    ctx.save();ctx.font='5px "Press Start 2P"';
+    ctx.fillStyle='rgba(100,255,100,.8)';ctx.fillText('STOPPED💤',nsx2-12,npc.y-NH-4);ctx.restore();
+  }
+  ctx.restore();
+
+  updatePlayer();updateNPC();updateCamera();
+  updateParts();updateDmg();updateHUD();rampSpeed();
+  refreshDots();
+  animId=requestAnimationFrame(gameLoop);
+}
+
+// ── GAME START ─────────────────────────────────────
+function startGame(){
+  ['overlay','prizePopup','winPopup','secretPopup','arrestMsg','policeFlash'].forEach(id=>{
+    document.getElementById(id).style.display='none';
+  });
+  document.querySelectorAll('.conf').forEach(e=>e.remove());
+  score=0;distance=0;hp=MAX_HP;speed=2.2;
+  frameCount=0;cameraX=0;screenShake=0;
+  skinStage=0;npcStopped=false;winShown=false;level=1;
+  particles=[];dmgNums=[];collectedPrizes=new Set();policeObj=null;
+  document.getElementById('scoreVal').textContent='0';
+  document.getElementById('distVal').textContent='0';
+  document.getElementById('progFill').style.width='0%';
+  updateHPBar();updateSkinLabel();updateLvlLabel();
+  genTerrain();resetPlayer();resetNPC();buildDots();
+  state='playing';cancelAnimationFrame(animId);gameLoop();
+}
+
+// ── GAME OVER ──────────────────────────────────────
+function triggerGameOver(byNPC){
+  if(state==='win'||state==='secret')return;
+  state='dead';cancelAnimationFrame(animId);
+  const roast=ROASTS[Math.floor(Math.random()*ROASTS.length)];
+  const ov=document.getElementById('overlay');
+  const list=Array.from(collectedPrizes).sort((a,b)=>a-b)
+    .map(d=>{const p=PRIZES.find(x=>x.dist===d);return p?`${p.emoji} ${p.name}`:null;}).filter(Boolean);
+
+  ov.innerHTML=`
+    <h1 style="color:#3498db;font-size:11px;line-height:2;">
+      🚨 ARRESTED!<br><span style="font-size:8px;color:#e74c3c;">LOOSE NIGA DETECTED</span>
+    </h1>
+    <p style="color:#3498db;font-size:6px;">${byNPC?'The White NPC called the feds on you!':'You knocked yourself out. Embarrassing.'}</p>
+    <p style="color:#e74c3c;font-size:6px;font-style:italic;margin:6px 0;max-width:400px;line-height:1.8;">"${roast}"</p>
+    <p style="color:#888;font-size:6px;">LVL:${level} · SCORE:${score} · DIST:${distance}m · SKIN:${skinStage}/10</p>
+    ${list.length
+      ?`<p style="color:#f39c12;font-size:6px;margin-top:5px;">🧴 CREAMS(${list.length}/10):</p>
+        <div style="max-height:56px;overflow-y:auto;">
+          ${list.map(l=>`<p style="color:#ddd;font-size:5px;margin:2px 0;">${l}</p>`).join('')}
+        </div>`
+      :`<p style="color:#222;font-size:6px;margin-top:4px;">Zero creams. Stayed dark. Skill issue.</p>`}
+    <button class="ovBtn" id="startBtn"
+      style="background:#3498db;color:#fff;font-size:7px;box-shadow:0 4px 0 #1a5f8a;">
+      🔄 RETRY NIGA
+    </button>`;
+  ov.style.display='flex';
+  document.getElementById('startBtn').onclick=startGame;
+}
+
+// ── WIN (5000m) ────────────────────────────────────
+function triggerWin(){
+  state='win';cancelAnimationFrame(animId);
+  document.getElementById('winScore').textContent=`LVL:${level} · SCORE:${score} · DIST:${distance}m · SKIN:10/10⬜`;
+  document.getElementById('winPopup').style.display='flex';
+  spawnConfetti();
+  document.getElementById('winKeepRunBtn').onclick=()=>{
+    document.getElementById('winPopup').style.display='none';
+    document.querySelectorAll('.conf').forEach(e=>e.remove());
+    state='playing';gameLoop();
+  };
+  document.getElementById('winRetryBtn').onclick=startGame;
+}
+
+// ── SECRET ENDING (5500m) ──────────────────────────
+function triggerSecretEnding(){
+  if(state==='secret')return;
+  state='secret';cancelAnimationFrame(animId);
+  document.getElementById('secretScore').textContent=`FINAL SCORE: ${score} · DIST: ${distance}m`;
+  document.getElementById('secretPopup').style.display='flex';
+  document.getElementById('secretRetryBtn').onclick=startGame;
+}
+
+document.getElementById('startBtn').onclick=startGame;
+document.getElementById('winRetryBtn').onclick=startGame;
+document.getElementById('secretRetryBtn').onclick=startGame;
+document.getElementById('continueBtn').onclick=()=>{};
+</script>
+</body>
+</html>
